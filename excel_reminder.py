@@ -184,21 +184,21 @@ class ExcelReminderGUI:
         # 自动刷新按钮
         auto_refresh_button = tk.Button(button_frame, text="自动刷新", 
                                         command=self.toggle_auto_refresh, 
-                                        font=("微软雅黑", 10), bg="#4CAF50", fg="white", 
+                                        font=("微软雅黑", 10), bg="#green", fg="white", 
                                         padx=15, pady=5)
         auto_refresh_button.pack(side=tk.LEFT, padx=5)
         
         # 刷新数据按钮
         refresh_button = tk.Button(button_frame, text="刷新数据", 
                                   command=self.load_data, 
-                                  font=("微软雅黑", 10), bg="#2196F3", fg="white", 
+                                  font=("微软雅黑", 10), bg="#blue", fg="white", 
                                   padx=15, pady=5)
         refresh_button.pack(side=tk.LEFT, padx=5)
         
         # 退出按钮
         exit_button = tk.Button(button_frame, text="退出", 
                               command=self.on_close, 
-                              font=("微软雅黑", 10), bg="#f44336", fg="white", 
+                              font=("微软雅黑", 10), bg="#red", fg="white", 
                               padx=15, pady=5)
         exit_button.pack(side=tk.LEFT, padx=5)
         
