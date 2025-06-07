@@ -174,7 +174,7 @@ class ExcelReminderGUI:
         # 副标题（使用自定义内容或显示当前日期）
         subtitle_text = self.subtitle or datetime.datetime.now().strftime("%Y年%m月%d日")
         subtitle_label = tk.Label(title_frame, text=subtitle_text, 
-                                font=("微软雅黑", 7), bg="#f0f0f0", fg="#666666")
+                                font=("微软雅黑", 12), bg="#f0f0f0", fg="#666666")
         subtitle_label.pack(side=tk.RIGHT, padx=20)
         
         # 功能按钮区域
