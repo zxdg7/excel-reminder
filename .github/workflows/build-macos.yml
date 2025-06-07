@@ -10,10 +10,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4  # 建议也更新 checkout 到 v4
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4  # 建议更新到 v4
         with:
           python-version: 3.9
 
@@ -33,7 +33,7 @@ jobs:
             excel_reminder.py
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3  # 更新到 v3
+        uses: actions/upload-artifact@v4  # 关键更新点
         with:
           name: excel-reminder-macos
           path: dist/excel_reminder
