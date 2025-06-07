@@ -33,7 +33,7 @@ jobs:
             excel_reminder.py
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3  # 更新到 v3
         with:
           name: excel-reminder-macos
           path: dist/excel_reminder
