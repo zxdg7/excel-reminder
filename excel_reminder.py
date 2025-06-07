@@ -184,21 +184,21 @@ class ExcelReminderGUI:
         # 自动刷新按钮
         auto_refresh_button = tk.Button(button_frame, text="自动刷新", 
                                         command=self.toggle_auto_refresh, 
-                                        font=("微软雅黑", 10), bg="#green", fg="white", 
+                                        font=("微软雅黑", 10), bg="green", fg="white", 
                                         padx=15, pady=5)
         auto_refresh_button.pack(side=tk.LEFT, padx=5)
         
         # 刷新数据按钮
         refresh_button = tk.Button(button_frame, text="刷新数据", 
                                   command=self.load_data, 
-                                  font=("微软雅黑", 10), bg="#blue", fg="white", 
+                                  font=("微软雅黑", 10), bg="blue", fg="white", 
                                   padx=15, pady=5)
         refresh_button.pack(side=tk.LEFT, padx=5)
         
         # 退出按钮
         exit_button = tk.Button(button_frame, text="退出", 
                               command=self.on_close, 
-                              font=("微软雅黑", 10), bg="#red", fg="white", 
+                              font=("微软雅黑", 10), bg="red", fg="white", 
                               padx=15, pady=5)
         exit_button.pack(side=tk.LEFT, padx=5)
         
@@ -206,7 +206,7 @@ class ExcelReminderGUI:
         self.status_var = tk.StringVar()
         self.status_var.set("准备加载数据...")
         status_label = tk.Label(button_frame, textvariable=self.status_var, 
-                              font=("微软雅黑", 10), bg="#f0f0f0", fg="blue")
+                              font=("微软雅黑", 10), bg="f0f0f0", fg="blue")
         status_label.pack(side=tk.RIGHT, padx=20)
         
         # 数据表格
