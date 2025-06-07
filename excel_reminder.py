@@ -168,13 +168,13 @@ class ExcelReminderGUI:
         
         # 主标题
         title_label = tk.Label(title_frame, text="小美的预约系统",
-                             font=("微软雅黑", 18, "bold"), bg="#f0f0f0")
+                             font=("微软雅黑", 20, "bold"), bg="#f0f0f0")
         title_label.pack(side=tk.LEFT, padx=20)
         
         # 副标题（使用自定义内容或显示当前日期）
         subtitle_text = self.subtitle or datetime.datetime.now().strftime("%Y年%m月%d日")
         subtitle_label = tk.Label(title_frame, text=subtitle_text, 
-                                font=("微软雅黑", 10), bg="#f0f0f0", fg="#666666")
+                                font=("微软雅黑", 7), bg="#f0f0f0", fg="#666666")
         subtitle_label.pack(side=tk.RIGHT, padx=20)
         
         # 功能按钮区域
@@ -276,8 +276,8 @@ class ExcelReminderGUI:
 def main():
     """主函数"""
     # 配置Excel文件路径和列名
-    excel_path = "/Users/你的用户名/Documents/reminders.xlsx"
-  #  excel_path = "预约.xlsx"  # 请替换为你的Excel文件路径
+    excel_path = "/Users/SunJJ/Documents/预约/患者管理登记表.xlsx"
+  #  excel_path = "患者管理登记表.xlsx"  # 请替换为你的Excel文件路径
     time_column = "复诊时间"  # 请替换为你的时间列名
     content_columns = ["姓名","处置", "余留问题"]  # 请替换为你要显示的列名
     subtitle = "栋哥特约版V1.0"  # 自定义副标题内容
