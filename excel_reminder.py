@@ -4,7 +4,8 @@ import threading
 import os
 import sys
 import json
-from tkinter import messagebox
+import tkinter as tk
+from tkinter import ttk, messagebox
 
 class ExcelReminderApp:
     def __init__(self, excel_path, time_column, content_columns=None):
@@ -156,50 +157,53 @@ class ExcelReminderGUI:
         self.create_widgets()
         self.load_data()
 
-        self.auto_refresh_var = tk.BooleanVar()  # 这里会使用tk
+        self.auto_refresh_var = tk.BooleanVar()
         self.auto_refresh_var.set(False)
 
         self.tree = None
 
     def create_widgets(self):
-        title_frame = tk.Frame(self.root, bg="#f0f0f0")  # 这里会使用tk
-        title_frame.pack(pady=10, fill=tk.X)  # 这里会使用tk
+        title_frame = tk.Frame(self.root, bg="#f0f0f0")
+        title_frame.pack(pady=10, fill=tk.X)
 
         title_label = tk.Label(title_frame, text="小美的预约系统",
-                               font=("微软雅黑", 18, "bold"), bg="#f0f0f0")  # 这里会使用tk
-        title_label.pack(side=tk.LEFT, padx=20)  # 这里会使用tk
+                               font=("微软雅黑", 18, "bold"), bg="#f0f0f0")
+        title_label.pack(side=tk.LEFT, padx=20)
 
         subtitle_text = self.subtitle or datetime.datetime.now().strftime("%Y年%m月%d日")
         subtitle_label = tk.Label(title_frame, text=subtitle_text,
-                                  font=("微软雅黑", 10), bg="#f0f0f0", fg="#666666")  # 这里会使用tk
-        subtitle_label.pack(side=tk.RIGHT, padx=20)  # 这里会使用tk
+                                  font=("微软雅黑", 10), bg="#f0f0f0", fg="#666666")
+        subtitle_label.pack(side=tk.RIGHT, padx=20)
 
-        button_frame = tk.Frame(self.root, bg="#f0f0f0")  # 这里会使用tk
-        button_frame.pack(pady=5, fill=tk.X)  # 这里会使用tk
+        button_frame = tk.Frame(self.root, bg="#f0f0f0")
+        button_frame.pack(pady=5, fill=tk.X)
 
+        # 自动刷新按钮（绿色）
         auto_refresh_button = tk.Button(button_frame, text="自动刷新",
                                         command=self.toggle_auto_refresh,
-                                        font=("微软雅黑", 10), bg="#4CAF50", fg="white",
-                                        padx=15, pady=5)  # 这里会使用tk
-        auto_refresh_button.pack(side=tk.LEFT, padx=5)  # 这里会使用tk
+                                        font=("微软雅黑", 10), bg="green", fg="white",
+                                        padx=15, pady=5)
+        auto_refresh_button.pack(side=tk.LEFT, padx=5)
 
+        # 刷新数据按钮（蓝色）
         refresh_button = tk.Button(button_frame, text="刷新数据",
                                    command=self.load_data,
-                                   font=("微软雅黑", 10), bg="#2196F3", fg="white",
-                                   padx=15, pady=5)  # 这里会使用tk
-        refresh_button.pack(side=tk.LEFT, padx=5)  # 这里会使用tk
+                                   font=("微软雅黑", 10), bg="blue", fg="white",
+                                   padx=15, pady=5)
+        refresh_button.pack(side=tk.LEFT, padx=5)
 
+        # 退出按钮（红色）
         exit_button = tk.Button(button_frame, text="退出",
                                 command=self.on_close,
-                                font=("微软雅黑", 10), bg="#f44336", fg="white",
-                                padx=15, pady=5)  # 这里会使用tk
-        exit_button.pack(side=tk.LEFT, padx=5)  # 这里会使用tk
+                                font=("微软雅黑", 10), bg="red", fg="white",
+                                padx=15, pady=5)
+        exit_button.pack(side=tk.LEFT, padx=5)
 
-        self.status_var = tk.StringVar()  # 这里会使用tk
+        self.status_var = tk.StringVar()
         self.status_var.set("准备加载数据...")
         status_label = tk.Label(button_frame, textvariable=self.status_var,
-                                font=("微软雅黑", 10), bg="#f0f0f0", fg="blue")  # 这里会使用tk
-        status_label.pack(side=tk.RIGHT, padx=20)  # 这里会使用tk
+                                font=("微软雅黑", 10), bg="#f0f0f0", fg="blue")
+        status_label.pack(side=tk.RIGHT, padx=20)
 
     def load_data(self):
         self.status_var.set("正在加载数据...")
@@ -210,16 +214,16 @@ class ExcelReminderGUI:
         if success:
             if self.tree is None:
                 columns = ["时间"] + self.app.content_columns
-                self.tree = ttk.Treeview(self.root, columns=columns, show="headings")  # 这里会使用ttk
+                self.tree = ttk.Treeview(self.root, columns=columns, show="headings")
                 self.tree.column("时间", width=150)
                 self.tree.heading("时间", text="时间")
                 for col in self.app.content_columns:
                     self.tree.column(col, width=150)
                     self.tree.heading(col, text=col)
-                scrollbar = ttk.Scrollbar(self.root, orient="vertical", command=self.tree.yview)  # 这里会使用ttk
+                scrollbar = ttk.Scrollbar(self.root, orient="vertical", command=self.tree.yview)
                 self.tree.configure(yscroll=scrollbar.set)
-                self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=20, pady=10)  # 这里会使用tk
-                scrollbar.pack(side=tk.RIGHT, fill=tk.Y, pady=10)  # 这里会使用tk
+                self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=20, pady=10)
+                scrollbar.pack(side=tk.RIGHT, fill=tk.Y, pady=10)
 
             for item in self.tree.get_children():
                 self.tree.delete(item)
@@ -251,11 +255,10 @@ class ExcelReminderGUI:
             self.root.destroy()
 
 def main():
-    excel_path = "/Users/Sun/Desktop/预约/患者管理登记表.xlsx"
-    #  excel_path = "患者管理登记表.xlsx"  # 请替换为你的Excel文件路径
-    time_column = "复诊时间"  # 请替换为你的时间列名
-    content_columns = ["姓名", "处置", "余留问题"]  # 请替换为你要显示的列名
-    subtitle = "栋哥特约版V1.0"  # 自定义副标题内容
+    excel_path = "/Users/Sun/Desktop/预约/患者管理登记表.xlsx"  # 修改后的Excel路径
+    time_column = "复诊时间"
+    content_columns = ["姓名", "处置", "余留问题"]
+    subtitle = "栋哥特约版V1.0"
 
     silent_mode = '--silent' in sys.argv
 
@@ -279,9 +282,6 @@ def main():
             app.stop_refreshing()
             print("程序已退出")
     else:
-        # 导入tkinter和ttk
-        import tkinter as tk
-        from tkinter import ttk
         root = tk.Tk()
         app = ExcelReminderGUI(root, excel_path, time_column, content_columns, subtitle)
         root.mainloop()
