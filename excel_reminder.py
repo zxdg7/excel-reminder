@@ -336,11 +336,11 @@ class ExcelReminderGUI:
         button_color = "#007fff"
         
         tk.Button(button_frame, text="自动刷新", command=self.toggle_auto_refresh,
-                  font=("微软雅黑", 10), bg=button_color, fg="white", padx=15, pady=5).pack(side=tk.LEFT, padx=5)
+                  font=("微软雅黑", 10), bg=button_color, fg="black", padx=15, pady=5).pack(side=tk.LEFT, padx=5)
         tk.Button(button_frame, text="刷新数据", command=self.load_data,
-                  font=("微软雅黑", 10), bg=button_color, fg="white", padx=15, pady=5).pack(side=tk.LEFT, padx=5)
+                  font=("微软雅黑", 10), bg=button_color, fg="black", padx=15, pady=5).pack(side=tk.LEFT, padx=5)
         tk.Button(button_frame, text="退出", command=self.on_close,
-                  font=("微软雅黑", 10), bg=button_color, fg="white", padx=15, pady=5).pack(side=tk.LEFT, padx=5)
+                  font=("微软雅黑", 10), bg=button_color, fg="black", padx=15, pady=5).pack(side=tk.LEFT, padx=5)
 
     def _create_status_label(self):
         status_label = tk.Label(self.root, textvariable=self.status_var,
