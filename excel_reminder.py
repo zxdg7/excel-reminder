@@ -156,6 +156,36 @@ class ExcelReminderGUI:
 
     def create_widgets(self):
         """创建界面组件"""
+        # 顶部按钮框架
+        button_frame = tk.Frame(self.root, bg="#f0f0f0")
+        button_frame.pack(pady=10, fill=tk.X)
+
+        # 刷新数据按钮
+        refresh_button = tk.Button(button_frame, text="刷新数据", command=self.load_data,
+                                   font=("微软雅黑", 10), bg="#077fff", fg="black", padx=20, pady=5)
+        refresh_button.pack(side=tk.LEFT, padx=10)
+
+        # 自动刷新复选框
+        auto_refresh_var = tk.BooleanVar()
+        auto_refresh_var.set(False)
+
+        def toggle_auto_refresh():
+            if auto_refresh_var.get():
+                self.app.start_refreshing(interval=300)  # 每5分钟刷新一次
+                self.status_var.set("自动刷新已开启 (每5分钟)")
+            else:
+                self.app.stop_refreshing()
+                self.status_var.set("自动刷新已关闭")
+
+        auto_refresh_check = tk.Checkbutton(button_frame, text="自动刷新", variable=auto_refresh_var,
+                                            command=toggle_auto_refresh, font=("微软雅黑", 10), bg="#077fff", fg="black")
+        auto_refresh_check.pack(side=tk.LEFT, padx=10)
+
+        # 退出按钮
+        exit_button = tk.Button(button_frame, text="退出", command=self.on_close,
+                                font=("微软雅黑", 10), bg="#077fff", fg="black", padx=20, pady=5)
+        exit_button.pack(side=tk.LEFT, padx=10)
+
         # 顶部标题
         title_frame = tk.Frame(self.root, bg="#f0f0f0")
         title_frame.pack(pady=10)
@@ -197,33 +227,6 @@ class ExcelReminderGUI:
         # 放置表格和滚动条
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=20, pady=10)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y, pady=10)
-
-        # 底部按钮
-        button_frame = tk.Frame(self.root, bg="#f0f0f0")
-        button_frame.pack(pady=20)
-
-        refresh_button = tk.Button(button_frame, text="刷新数据", command=self.load_data,
-                                   font=("微软雅黑", 10), bg="#2196F3", fg="white", padx=20, pady=5)
-        refresh_button.pack(side=tk.LEFT, padx=10)
-
-        auto_refresh_var = tk.BooleanVar()
-        auto_refresh_var.set(False)
-
-        def toggle_auto_refresh():
-            if auto_refresh_var.get():
-                self.app.start_refreshing(interval=300)  # 每5分钟刷新一次
-                self.status_var.set("自动刷新已开启 (每5分钟)")
-            else:
-                self.app.stop_refreshing()
-                self.status_var.set("自动刷新已关闭")
-
-        auto_refresh_check = tk.Checkbutton(button_frame, text="自动刷新", variable=auto_refresh_var,
-                                            command=toggle_auto_refresh, font=("微软雅黑", 10), bg="#f0f0f0")
-        auto_refresh_check.pack(side=tk.LEFT, padx=10)
-
-        exit_button = tk.Button(button_frame, text="退出", command=self.on_close,
-                                font=("微软雅黑", 10), bg="#f44336", fg="white", padx=20, pady=5)
-        exit_button.pack(side=tk.LEFT, padx=10)
 
     def load_data(self):
         """加载并显示数据"""
