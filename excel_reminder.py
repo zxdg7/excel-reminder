@@ -19,22 +19,32 @@ class ExcelReminderApp:
         self.stop_event = threading.Event()
         self.check_thread = None
         self.cache_file = 'data_cache.json'
+        self.debug_mode = True  # 调试模式开关
 
     def load_today_data(self, print_new_records=False):
         """加载今日数据，可选打印新增记录"""
         today = datetime.date.today()
+        if self.debug_mode:
+            print(f"\n=== 开始加载数据 ({datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}) ===")
+            print(f"当前筛选日期: {today}")
+            print(f"Excel文件路径: {self.excel_path}")
+        
         try:
             # 尝试从缓存加载
             try:
                 with open(self.cache_file, 'r') as f:
                     cache = json.load(f)
                     if cache.get('date') == str(today):
+                        if self.debug_mode:
+                            print(f"从缓存加载数据，日期匹配: {today}")
                         self.previous_data = self.today_data.copy()
                         self.today_data = cache.get('data', [])
                         if print_new_records:
                             self._print_new_records()
                         return True, f"从缓存加载 {len(self.today_data)} 条记录"
             except (FileNotFoundError, json.JSONDecodeError):
+                if self.debug_mode:
+                    print("缓存文件不存在或格式错误，从Excel加载")
                 pass
 
             # 从Excel加载
@@ -42,7 +52,12 @@ class ExcelReminderApp:
                 return False, f"文件不存在: {self.excel_path}"
 
             file_ext = os.path.splitext(self.excel_path)[1].lower()
+            if self.debug_mode:
+                print(f"文件类型: {file_ext}")
+                
             if file_ext == '.xlsx':
+                if self.debug_mode:
+                    print("使用openpyxl解析.xlsx文件")
                 wb = load_workbook(self.excel_path, data_only=True)
                 ws = wb.active
                 time_col_idx, content_col_indices = self._get_columns(ws)
@@ -50,6 +65,8 @@ class ExcelReminderApp:
                 self.today_data = self._parse_xlsx_rows(ws, time_col_idx, content_col_indices, today)
                 wb.close()
             elif file_ext == '.xls':
+                if self.debug_mode:
+                    print("使用pandas解析.xls文件")
                 df = pd.read_excel(self.excel_path)
                 self.previous_data = self.today_data.copy()
                 self.today_data = self._parse_xls_data(df, today)
@@ -64,6 +81,8 @@ class ExcelReminderApp:
                 
             return True, f"成功加载 {len(self.today_data)} 条今日记录"
         except Exception as e:
+            if self.debug_mode:
+                print(f"加载过程中发生异常: {str(e)}")
             return False, f"加载失败: {str(e)}"
 
     def _print_new_records(self):
@@ -92,81 +111,181 @@ class ExcelReminderApp:
     def _get_columns(self, ws):
         time_col_idx = None
         content_col_indices = {}
+        header = [cell.value for cell in ws[1]]
+        
+        if self.debug_mode:
+            print(f"Excel表头: {header}")
+            print(f"查找时间列: '{self.time_column}'")
+            print(f"查找内容列: {self.content_columns}")
+        
         for col_idx, cell in enumerate(ws[1], 1):
             if cell.value == self.time_column:
                 time_col_idx = col_idx
             if cell.value in self.content_columns:
                 content_col_indices[cell.value] = col_idx
+                
+        if self.debug_mode:
+            print(f"找到时间列索引: {time_col_idx}")
+            print(f"找到内容列索引: {content_col_indices}")
+            
         if not time_col_idx:
             raise ValueError(f"未找到时间列: {self.time_column}")
+            
         return time_col_idx, content_col_indices
 
     def _parse_xlsx_rows(self, ws, time_col_idx, content_col_indices, today):
         data = []
-        for row in ws.iter_rows(min_row=2, values_only=True):
+        if self.debug_mode:
+            print(f"\n开始解析Excel数据，总行数: {ws.max_row - 1}")
+            print(f"时间列索引: {time_col_idx}")
+            print(f"内容列索引: {content_col_indices}")
+        
+        for i, row in enumerate(ws.iter_rows(min_row=2, values_only=True), 2):
+            if self.debug_mode and i <= 10:  # 只打印前10行用于调试
+                print(f"\n解析第 {i} 行数据:")
+                print(f"整行内容: {row}")
+            
             time_value = row[time_col_idx - 1]
+            
+            if self.debug_mode and i <= 10:
+                print(f"时间列值: {time_value}, 类型: {type(time_value)}")
+            
             if time_value:
-                time_obj = self._parse_time(time_value)
-                if time_obj.date() == today:
-                    record = {'时间': time_obj}
-                    for col_name, col_idx in content_col_indices.items():
-                        record[col_name] = row[col_idx - 1] if col_idx - 1 < len(row) else None
-                    data.append(record)
+                try:
+                    time_obj = self._parse_time(time_value)
+                    
+                    if self.debug_mode and i <= 10:
+                        print(f"解析后的时间: {time_obj}")
+                    
+                    if time_obj.date() == today:
+                        if self.debug_mode and i <= 10:
+                            print("✓ 日期匹配今日，添加到结果集")
+                            
+                        record = {'时间': time_obj}
+                        for col_name, col_idx in content_col_indices.items():
+                            record[col_name] = row[col_idx - 1] if col_idx - 1 < len(row) else None
+                        data.append(record)
+                    elif self.debug_mode and i <= 10:
+                        print(f"✗ 日期不匹配今日 ({time_obj.date()})")
+                except Exception as e:
+                    if self.debug_mode:
+                        print(f"✗ 时间解析失败: {str(e)}")
+            elif self.debug_mode and i <= 10:
+                print("✗ 时间值为空，跳过")
+        
+        if self.debug_mode:
+            print(f"\n解析完成，共找到 {len(data)} 条今日记录")
+            
         return data
 
     def _parse_xls_data(self, df, today):
+        if self.debug_mode:
+            print(f"\n开始解析DataFrame数据，总行数: {len(df)}")
+            print(f"DataFrame列名: {list(df.columns)}")
+        
         if self.time_column not in df.columns:
             raise ValueError(f"未找到时间列: {self.time_column}")
-        df['datetime'] = pd.to_datetime(df[self.time_column])
+            
+        try:
+            df['datetime'] = pd.to_datetime(df[self.time_column])
+            if self.debug_mode:
+                print(f"成功解析时间列，示例值: {df['datetime'].iloc[0]}")
+        except Exception as e:
+            if self.debug_mode:
+                print(f"时间列解析失败: {str(e)}")
+            raise
+            
         today_start = datetime.datetime.combine(today, datetime.time.min)
         today_end = datetime.datetime.combine(today, datetime.time.max)
+        
+        if self.debug_mode:
+            print(f"今日时间范围: {today_start} 至 {today_end}")
+            
         today_df = df[(df['datetime'] >= today_start) & (df['datetime'] <= today_end)]
+        
+        if self.debug_mode:
+            print(f"筛选后今日记录数: {len(today_df)}")
+            
         data = []
         for _, row in today_df.iterrows():
             record = {'时间': row['datetime'].to_pydatetime()}
             for col in self.content_columns:
                 record[col] = row[col] if col in row else None
             data.append(record)
+            
         return data
 
     def _parse_time(self, time_value):
+        if self.debug_mode:
+            print(f"尝试解析时间值: '{time_value}' (类型: {type(time_value)})")
+            
         if isinstance(time_value, str):
             try:
+                if self.debug_mode:
+                    print("  尝试格式: %Y-%m-%d %H:%M:%S")
                 return datetime.datetime.strptime(time_value, '%Y-%m-%d %H:%M:%S')
-            except ValueError:
+            except ValueError as e:
+                if self.debug_mode:
+                    print(f"  格式1失败: {str(e)}")
                 try:
+                    if self.debug_mode:
+                        print("  尝试格式: %Y-%m-%d")
                     return datetime.datetime.strptime(time_value, '%Y-%m-%d')
-                except ValueError:
+                except ValueError as e:
+                    if self.debug_mode:
+                        print(f"  格式2失败: {str(e)}")
                     try:
-                        # 尝试其他常见格式
+                        if self.debug_mode:
+                            print("  尝试格式: %m/%d/%Y %H:%M:%S")
                         return datetime.datetime.strptime(time_value, '%m/%d/%Y %H:%M:%S')
-                    except ValueError:
+                    except ValueError as e:
+                        if self.debug_mode:
+                            print(f"  格式3失败: {str(e)}")
+                            print("  尝试格式: %m/%d/%Y")
                         return datetime.datetime.strptime(time_value, '%m/%d/%Y')
         elif isinstance(time_value, datetime.datetime):
+            if self.debug_mode:
+                print("  已是datetime对象，直接返回")
             return time_value
         elif isinstance(time_value, datetime.date):
+            if self.debug_mode:
+                print("  是date对象，转换为datetime")
             return datetime.datetime.combine(time_value, datetime.time())
         else:
-            raise ValueError(f"未知时间格式: {time_value}")
+            error_msg = f"未知时间格式: {time_value} (类型: {type(time_value)})"
+            if self.debug_mode:
+                print(f"  解析失败: {error_msg}")
+            raise ValueError(error_msg)
 
     def _cache_data(self, today):
+        if self.debug_mode:
+            print(f"将数据缓存到 {self.cache_file}")
+            
         cache = {'date': str(today), 'data': self.today_data}
         with open(self.cache_file, 'w') as f:
             json.dump(cache, f, default=str)
 
     def start_refreshing(self, interval=3600):
         if not self.check_thread or not self.check_thread.is_alive():
+            if self.debug_mode:
+                print(f"启动自动刷新线程，间隔: {interval}秒")
             self.check_thread = threading.Thread(target=self._refresh_loop, args=(interval,))
             self.check_thread.daemon = True
             self.check_thread.start()
 
     def _refresh_loop(self, interval):
+        if self.debug_mode:
+            print("自动刷新线程已启动")
+            
         while not self.stop_event.is_set():
             success, message = self.load_today_data(print_new_records=True)
             print(f"自动刷新: {message}")
             time.sleep(interval)
 
     def stop_refreshing(self):
+        if self.debug_mode:
+            print("停止自动刷新线程")
+            
         self.stop_event.set()
         if self.check_thread and self.check_thread.is_alive():
             self.check_thread.join(timeout=1)
@@ -188,6 +307,7 @@ class ExcelReminderGUI:
         self.create_widgets()
         
         # 先加载数据并打印到终端
+        print(f"\n=== 启动应用程序 ===")
         success, message = self.app.load_today_data(print_new_records=True)
         print(message)
         
@@ -212,12 +332,15 @@ class ExcelReminderGUI:
         button_frame = tk.Frame(self.root, bg="#f0f0f0")
         button_frame.pack(pady=5, fill=tk.X)
 
+        # 统一使用 #007fff 颜色
+        button_color = "#007fff"
+        
         tk.Button(button_frame, text="自动刷新", command=self.toggle_auto_refresh,
-                  font=("微软雅黑", 10), bg="#4CAF50", fg="white", padx=15, pady=5).pack(side=tk.LEFT, padx=5)
+                  font=("微软雅黑", 10), bg=button_color, fg="white", padx=15, pady=5).pack(side=tk.LEFT, padx=5)
         tk.Button(button_frame, text="刷新数据", command=self.load_data,
-                  font=("微软雅黑", 10), bg="#2196F3", fg="white", padx=15, pady=5).pack(side=tk.LEFT, padx=5)
+                  font=("微软雅黑", 10), bg=button_color, fg="white", padx=15, pady=5).pack(side=tk.LEFT, padx=5)
         tk.Button(button_frame, text="退出", command=self.on_close,
-                  font=("微软雅黑", 10), bg="#f44336", fg="white", padx=15, pady=5).pack(side=tk.LEFT, padx=5)
+                  font=("微软雅黑", 10), bg=button_color, fg="white", padx=15, pady=5).pack(side=tk.LEFT, padx=5)
 
     def _create_status_label(self):
         status_label = tk.Label(self.root, textvariable=self.status_var,
@@ -226,6 +349,7 @@ class ExcelReminderGUI:
 
     def load_data(self):
         self.status_var.set("正在刷新数据...")
+        print(f"\n=== 手动刷新数据 ===")
         success, message = self.app.load_today_data(print_new_records=True)
         print(message)
         self._init_tree_if_needed()
@@ -259,14 +383,17 @@ class ExcelReminderGUI:
         if self.auto_refresh_var.get():
             self.app.stop_refreshing()
             self.status_var.set("自动刷新已关闭")
+            print("\n=== 自动刷新已关闭 ===")
         else:
             self.app.start_refreshing()
             self.status_var.set("自动刷新已开启 (每1小时)")
+            print("\n=== 自动刷新已开启 (每1小时) ===")
         self.auto_refresh_var.set(not self.auto_refresh_var.get())
 
     def on_close(self):
         if messagebox.askyesno("确认", "确定退出吗？"):
             self.app.stop_refreshing()
+            print("\n=== 应用程序已关闭 ===")
             self.root.destroy()
 
 def main():
@@ -290,6 +417,7 @@ def main():
                 print("程序已退出")
     # GUI模式（先打印数据，再显示界面）
     else:
+        print(f"=== 启动小美的预约系统 ===")
         print(f"正在从 {excel_path} 加载今日数据...")
         root = tk.Tk()
         ExcelReminderGUI(root, excel_path, time_column, content_columns, subtitle)
