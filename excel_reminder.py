@@ -15,22 +15,29 @@ class ExcelReminderApp:
         self.time_column = time_column
         self.content_columns = content_columns or []
         self.today_data = []
+        self.previous_data = []  # 存储上次数据用于对比
         self.stop_event = threading.Event()
         self.check_thread = None
         self.cache_file = 'data_cache.json'
 
-    def load_today_data(self):
+    def load_today_data(self, print_new_records=False):
+        """加载今日数据，可选打印新增记录"""
         today = datetime.date.today()
         try:
-            with open(self.cache_file, 'r') as f:
-                cache = json.load(f)
-                if cache.get('date') == str(today):
-                    self.today_data = cache.get('data', [])
-                    return True, f"从缓存加载 {len(self.today_data)} 条记录"
-        except (FileNotFoundError, json.JSONDecodeError):
-            pass
+            # 尝试从缓存加载
+            try:
+                with open(self.cache_file, 'r') as f:
+                    cache = json.load(f)
+                    if cache.get('date') == str(today):
+                        self.previous_data = self.today_data.copy()
+                        self.today_data = cache.get('data', [])
+                        if print_new_records:
+                            self._print_new_records()
+                        return True, f"从缓存加载 {len(self.today_data)} 条记录"
+            except (FileNotFoundError, json.JSONDecodeError):
+                pass
 
-        try:
+            # 从Excel加载
             if not os.path.exists(self.excel_path):
                 return False, f"文件不存在: {self.excel_path}"
 
@@ -39,18 +46,48 @@ class ExcelReminderApp:
                 wb = load_workbook(self.excel_path, data_only=True)
                 ws = wb.active
                 time_col_idx, content_col_indices = self._get_columns(ws)
+                self.previous_data = self.today_data.copy()
                 self.today_data = self._parse_xlsx_rows(ws, time_col_idx, content_col_indices, today)
                 wb.close()
             elif file_ext == '.xls':
                 df = pd.read_excel(self.excel_path)
+                self.previous_data = self.today_data.copy()
                 self.today_data = self._parse_xls_data(df, today)
             else:
                 return False, f"不支持的文件类型: {file_ext}"
 
             self._cache_data(today)
+            
+            # 打印新增记录
+            if print_new_records:
+                self._print_new_records()
+                
             return True, f"成功加载 {len(self.today_data)} 条今日记录"
         except Exception as e:
             return False, f"加载失败: {str(e)}"
+
+    def _print_new_records(self):
+        """打印新增的记录"""
+        if not self.previous_data:  # 首次加载
+            print(f"\n首次加载 {len(self.today_data)} 条今日记录:")
+            for record in self.today_data:
+                self._print_record(record)
+        else:  # 刷新时对比新旧数据
+            old_ids = set(str(record["时间"]) + str(record.get("姓名", "")) for record in self.previous_data)
+            new_records = [r for r in self.today_data if (str(r["时间"]) + str(r.get("姓名", ""))) not in old_ids]
+            
+            if new_records:
+                print(f"\n检测到 {len(new_records)} 条新增记录:")
+                for record in new_records:
+                    self._print_record(record)
+            else:
+                print("\n没有新增记录")
+
+    def _print_record(self, record):
+        """格式化打印单条记录"""
+        time_str = record["时间"].strftime("%Y-%m-%d %H:%M:%S")
+        details = ', '.join([f'{k}: {v}' for k, v in record.items() if k != '时间'])
+        print(f"{time_str}: {details}")
 
     def _get_columns(self, ws):
         time_col_idx = None
@@ -97,7 +134,14 @@ class ExcelReminderApp:
             try:
                 return datetime.datetime.strptime(time_value, '%Y-%m-%d %H:%M:%S')
             except ValueError:
-                return datetime.datetime.strptime(time_value, '%Y-%m-%d')
+                try:
+                    return datetime.datetime.strptime(time_value, '%Y-%m-%d')
+                except ValueError:
+                    try:
+                        # 尝试其他常见格式
+                        return datetime.datetime.strptime(time_value, '%m/%d/%Y %H:%M:%S')
+                    except ValueError:
+                        return datetime.datetime.strptime(time_value, '%m/%d/%Y')
         elif isinstance(time_value, datetime.datetime):
             return time_value
         elif isinstance(time_value, datetime.date):
@@ -118,7 +162,8 @@ class ExcelReminderApp:
 
     def _refresh_loop(self, interval):
         while not self.stop_event.is_set():
-            self.load_today_data()
+            success, message = self.load_today_data(print_new_records=True)
+            print(f"自动刷新: {message}")
             time.sleep(interval)
 
     def stop_refreshing(self):
@@ -136,12 +181,20 @@ class ExcelReminderGUI:
         self.app = ExcelReminderApp(excel_path, time_column, content_columns)
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.subtitle = subtitle or datetime.datetime.now().strftime("%Y年%m月%d日")
-        self.tree = None  # 提前初始化 tree 属性
+        self.tree = None
         self.auto_refresh_var = tk.BooleanVar(value=False)
         self.status_var = tk.StringVar(value="准备加载数据...")
 
         self.create_widgets()
-        self.load_data()
+        
+        # 先加载数据并打印到终端
+        success, message = self.app.load_today_data(print_new_records=True)
+        print(message)
+        
+        # 再更新GUI
+        self._init_tree_if_needed()
+        self._update_tree_data()
+        self.status_var.set(message)
 
     def create_widgets(self):
         self._create_title_frame()
@@ -160,11 +213,11 @@ class ExcelReminderGUI:
         button_frame.pack(pady=5, fill=tk.X)
 
         tk.Button(button_frame, text="自动刷新", command=self.toggle_auto_refresh,
-                  font=("微软雅黑", 10), bg="#4CAF50", fg="black", padx=15, pady=5).pack(side=tk.LEFT, padx=5)
+                  font=("微软雅黑", 10), bg="#4CAF50", fg="white", padx=15, pady=5).pack(side=tk.LEFT, padx=5)
         tk.Button(button_frame, text="刷新数据", command=self.load_data,
-                  font=("微软雅黑", 10), bg="#2196F3", fg="black", padx=15, pady=5).pack(side=tk.LEFT, padx=5)
+                  font=("微软雅黑", 10), bg="#2196F3", fg="white", padx=15, pady=5).pack(side=tk.LEFT, padx=5)
         tk.Button(button_frame, text="退出", command=self.on_close,
-                  font=("微软雅黑", 10), bg="#f44336", fg="black", padx=15, pady=5).pack(side=tk.LEFT, padx=5)
+                  font=("微软雅黑", 10), bg="#f44336", fg="white", padx=15, pady=5).pack(side=tk.LEFT, padx=5)
 
     def _create_status_label(self):
         status_label = tk.Label(self.root, textvariable=self.status_var,
@@ -172,15 +225,12 @@ class ExcelReminderGUI:
         status_label.pack(pady=5, fill=tk.X)
 
     def load_data(self):
-        self.status_var.set("正在加载数据...")
-        success, message = self.app.load_today_data()
-        if success:
-            self._init_tree_if_needed()
-            self._update_tree_data()
-            self.status_var.set(f"加载完成，今日 {len(self.app.today_data)} 条记录")
-        else:
-            self.status_var.set(f"加载失败: {message}")
-            messagebox.showerror("错误", message)
+        self.status_var.set("正在刷新数据...")
+        success, message = self.app.load_today_data(print_new_records=True)
+        print(message)
+        self._init_tree_if_needed()
+        self._update_tree_data()
+        self.status_var.set(message)
 
     def _init_tree_if_needed(self):
         if self.tree is None:
@@ -225,23 +275,22 @@ def main():
     content_columns = ["姓名", "处置", "余留问题"]  # 需展示的列名
     subtitle = "栋哥特约版V1.0"
 
+    # 静默模式（仅打印数据）
     if '--silent' in sys.argv:
         app = ExcelReminderApp(excel_path, time_column, content_columns)
-        success, message = app.load_today_data()
+        success, message = app.load_today_data(print_new_records=True)
         print(message)
         if success:
-            for record in app.today_data:
-                time_str = record["时间"].strftime("%Y-%m-%d %H:%M:%S")
-                details = ', '.join([f'{k}: {v}' for k, v in record.items() if k != '时间'])
-                print(f"{time_str}: {details}")
-        app.start_refreshing()
-        try:
-            while True:
-                time.sleep(1)
-        except KeyboardInterrupt:
-            app.stop_refreshing()
-            print("程序已退出")
+            app.start_refreshing()
+            try:
+                while True:
+                    time.sleep(1)
+            except KeyboardInterrupt:
+                app.stop_refreshing()
+                print("程序已退出")
+    # GUI模式（先打印数据，再显示界面）
     else:
+        print(f"正在从 {excel_path} 加载今日数据...")
         root = tk.Tk()
         ExcelReminderGUI(root, excel_path, time_column, content_columns, subtitle)
         root.mainloop()
