@@ -142,7 +142,7 @@ class ExcelReminderApp:
 class ExcelReminderGUI:
     def __init__(self, root, excel_path, time_column, content_columns=None):
         self.root = root
-        self.root.title("Excel今日数据查看器")
+        self.root.title("小美的预约系统")
         self.root.geometry("800x600")
         self.root.configure(bg="#f0f0f0")
 
@@ -160,7 +160,7 @@ class ExcelReminderGUI:
         title_frame = tk.Frame(self.root, bg="#f0f0f0")
         title_frame.pack(pady=10)
 
-        title_label = tk.Label(title_frame, text="Excel今日数据查看器", font=("微软雅黑", 16, "bold"), bg="#f0f0f0")
+        title_label = tk.Label(title_frame, text="小美的预约系统", font=("微软雅黑", 16, "bold"), bg="#f0f0f0")
         title_label.pack()
 
         # 文件信息
@@ -259,7 +259,7 @@ class ExcelReminderGUI:
 def main():
     """主函数"""
     # 配置Excel文件路径和列名
-    excel_path = "Users/Sun/Desktop/患者管理登记表.xlsx"  # 请替换为你的Excel文件路径
+    excel_path = "Users/Sun/Desktop/预约/患者管理登记表.xlsx"  # 请替换为你的Excel文件路径
     time_column = "复诊时间"  # 请替换为你的时间列名
     content_columns = ["姓名", "处置", "余留问题"]  # 请替换为你要显示的列名
 
