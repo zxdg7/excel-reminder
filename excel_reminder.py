@@ -262,7 +262,7 @@ class ExcelReminderGUI:
 def main():
     """主函数"""
     # 配置Excel文件路径和列名
-    excel_path = "Users/Sun/Desktop/预约/患者管理登记表.xlsx"  # 请替换为你的Excel文件路径
+    excel_path = "/Users/Sun/Desktop/预约/患者管理登记表.xlsx"  # 请替换为你的Excel文件路径
     time_column = "复诊时间"  # 请替换为你的时间列名
     content_columns = ["姓名", "处置", "余留问题"]  # 请替换为你要显示的列名
 
